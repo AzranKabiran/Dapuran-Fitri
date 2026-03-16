@@ -263,18 +263,21 @@ footer {
 .form-products { display: flex; flex-direction: column; gap: 6px; }
 .form-product-row {
   display: grid;
-  grid-template-columns: 1fr 90px 48px;
-  gap: 6px;
+  grid-template-columns: 1fr 58px 44px;
+  gap: 4px;
   align-items: stretch;
 }
 .form-product-row .form-input {
-  height: 54px;
+  height: 52px;
   margin: 0;
+  font-size: 13px;
 }
 .form-prod-kg {
   text-align: center;
-  font-size: 16px;
-  letter-spacing: 1px;
+  font-size: 15px;
+  letter-spacing: 0;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 .form-remove-row {
   background: transparent;
@@ -284,7 +287,7 @@ footer {
   font-size: 14px;
   padding: 0;
   width: 100%;
-  height: 54px;
+  height: 52px;
   cursor: pointer;
   transition: border-color .2s, color .2s, background .2s;
   display: flex; align-items: center; justify-content: center;
