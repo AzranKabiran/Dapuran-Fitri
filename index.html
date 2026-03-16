@@ -953,7 +953,7 @@
     <a href="#produk" class="footer-link">Produk</a>
     <a href="#cerita" class="footer-link">Cerita Pendiri</a>
     <a href="#preorder" class="footer-link">Pre-Order</a>
-    <a href="https://wa.me/6282277578490" class="footer-link" target="_blank" rel="noopener">WhatsApp</a>
+    <a href="https://wa.me/6282277578490" class="footer-link" target="_blank">WhatsApp</a>
     <a href="https://instagram.com/dapuranfitri" class="footer-link" target="_blank" rel="noopener">Instagram</a>
     <a href="#faq" class="footer-link">FAQ</a>
     <a href="mailto:hello@dapuranfitri.com" class="footer-link">Kontak</a>
@@ -1042,12 +1042,12 @@
           opt.textContent = `${opt.dataset.label} — Rp ${Number(harga).toLocaleString('id-ID')}`;
         });
 
-        // Rebuild options baris PERTAMA supaya harga ikut muncul
-        const firstRow = document.querySelector('#formProducts .form-product-row:first-child .form-prod-name');
-        if (firstRow && typeof buildProductOptions === 'function') {
-          const currentVal = firstRow.value;
-          firstRow.innerHTML = buildProductOptions(currentVal);
-        }
+        // Force browser re-render semua select (mobile cache workaround)
+        document.querySelectorAll('.form-prod-name').forEach(function(sel) {
+          var val = sel.value;
+          if (val) { sel.value = ''; sel.value = val; }
+        });
+
         // Recalc estimasi total
         if (typeof recalcTotal === 'function') recalcTotal();
 
