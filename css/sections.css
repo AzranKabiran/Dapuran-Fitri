@@ -260,19 +260,45 @@ footer {
   display: flex; align-items: center; gap: 12px;
 }
 .form-section-label::before { content:''; width:20px; height:1px; background:var(--gold); flex-shrink:0; }
-.form-products { display: flex; flex-direction: column; gap: 8px; }
-.form-product-row { display: grid; grid-template-columns: 1fr 80px auto; gap: 2px; align-items: start; }
+.form-products { display: flex; flex-direction: column; gap: 6px; }
+.form-product-row {
+  display: grid;
+  grid-template-columns: 1fr 90px 48px;
+  gap: 6px;
+  align-items: stretch;
+}
+.form-product-row .form-input {
+  height: 54px;
+  margin: 0;
+}
+.form-prod-kg {
+  text-align: center;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
 .form-remove-row {
   background: transparent;
   border: 1px solid rgba(196,86,86,.25);
-  color: rgba(196,86,86,.5);
+  color: rgba(196,86,86,.45);
   font-family: 'Jost', sans-serif;
-  font-size: 13px; font-weight: 400;
-  padding: 0; width: 44px; height: 52px;
-  cursor: pointer; transition: border-color .25s, color .25s;
-  flex-shrink: 0;
+  font-size: 14px;
+  padding: 0;
+  width: 100%;
+  height: 54px;
+  cursor: pointer;
+  transition: border-color .2s, color .2s, background .2s;
+  display: flex; align-items: center; justify-content: center;
 }
-.form-remove-row:hover { border-color: #c45656; color: #c45656; }
+.form-remove-row:hover {
+  border-color: #c45656;
+  color: #c45656;
+  background: rgba(196,86,86,.06);
+}
+.form-remove-row.hidden-btn {
+  visibility: hidden;
+  pointer-events: none;
+  border-color: transparent;
+}
 
 /* Inline error message */
 .field-error {
