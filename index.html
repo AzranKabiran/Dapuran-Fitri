@@ -1042,7 +1042,13 @@
           opt.textContent = `${opt.dataset.label} — Rp ${Number(harga).toLocaleString('id-ID')}`;
         });
 
-        // Recalc estimasi setelah harga ter-load
+        // Rebuild options baris PERTAMA supaya harga ikut muncul
+        const firstRow = document.querySelector('#formProducts .form-product-row:first-child .form-prod-name');
+        if (firstRow && typeof buildProductOptions === 'function') {
+          const currentVal = firstRow.value;
+          firstRow.innerHTML = buildProductOptions(currentVal);
+        }
+        // Recalc estimasi total
         if (typeof recalcTotal === 'function') recalcTotal();
 
       } catch(e) {
