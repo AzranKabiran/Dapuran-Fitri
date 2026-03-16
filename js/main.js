@@ -352,7 +352,7 @@ function resetFormProducts() {
       ${buildProductOptions()}
     </select>
     <input type="number" class="form-input form-prod-kg" placeholder="jumlah toples" min="0.25" step="0.25" required oninput="recalcTotal()">
-    <button type="button" class="form-remove-row" onclick="removeProductRow(this)" aria-label="Hapus baris">✕</button>
+    <button type="button" class="form-remove-row hidden-btn" aria-hidden="true" tabindex="-1">✕</button>
   `;
   container.innerHTML = '';
   container.appendChild(row);
