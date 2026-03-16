@@ -800,7 +800,7 @@
           <option value="sagon" data-product-id="sagon" data-label="Kue Sagon" data-price="0">Kue Sagon</option>
         </select>
         <input type="number" class="form-input form-prod-kg" placeholder="jumlah toples" min="0.25" step="0.25" required oninput="recalcTotal()">
-        <div style="width:44px;height:52px;"></div>
+        <div style="width:44px;height:52px;visibility:hidden;"></div>
       </div>
     </div>
     <button type="button" class="form-add-row" onclick="addProductRow()">+ Tambah Produk Lain</button>
@@ -956,7 +956,7 @@
     <a href="https://wa.me/6282277578490" class="footer-link" target="_blank" rel="noopener">WhatsApp</a>
     <a href="https://instagram.com/dapuranfitri" class="footer-link" target="_blank" rel="noopener">Instagram</a>
     <a href="#faq" class="footer-link">FAQ</a>
-    <a href="/cdn-cgi/l/email-protection#9ef6fbf2f2f1defaffeeebecfff0f8f7eaecf7b0fdf1f3" class="footer-link">Kontak</a>
+    <a href="mailto:hello@dapuranfitri.com" class="footer-link">Kontak</a>
   </div>
   <div class="footer-bottom">© 2027 Dapuran Fitri · Dibuat Seperti Milik Sendiri</div>
 </footer>
@@ -1005,7 +1005,7 @@
   </div>
 </div>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="js/main.js"></script>
+  <script src="js/main.js"></script>
 
   <script>
     /* ── FETCH HARGA DARI SUPABASE ── */
@@ -1039,4 +1039,19 @@
           const harga = window._priceMap[pid];
           if (!harga) return;
           opt.dataset.price = harga;
-          opt.textContent = `${opt.dataset.label} — Rp ${Number(harga).toLocaleString('id-ID
+          opt.textContent = `${opt.dataset.label} — Rp ${Number(harga).toLocaleString('id-ID')}`;
+        });
+
+        // Recalc estimasi setelah harga ter-load
+        if (typeof recalcTotal === 'function') recalcTotal();
+
+      } catch(e) {
+        console.warn('Gagal memuat harga:', e);
+      }
+    }
+
+    loadPricesFromDB();
+  </script>
+
+</body>
+</html>
