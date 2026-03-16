@@ -263,7 +263,7 @@ footer {
 .form-products { display: flex; flex-direction: column; gap: 6px; }
 .form-product-row {
   display: grid;
-  grid-template-columns: 1fr 58px 44px;
+  grid-template-columns: 1fr 46px 40px;
   gap: 4px;
   align-items: stretch;
 }
