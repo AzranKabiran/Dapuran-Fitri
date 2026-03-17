@@ -772,18 +772,9 @@
     <label class="sr-only" for="fKota">Kota</label>
     <input type="hidden" id="fKota" name="kota">
     <div class="prod-dropdown-trigger kota-trigger" id="kotaTrigger"
-      onclick="openKotaDropdown()" role="button" tabindex="0" aria-label="Pilih kota pengiriman">
+      role="button" tabindex="0" aria-label="Pilih kota pengiriman">
       <span class="prod-dropdown-trigger-name placeholder" id="kotaTriggerName">Pilih Kota / Kabupaten Anda</span>
       <span class="prod-dropdown-trigger-price" id="kotaTriggerSub"></span>
-    </div>
-
-    <!-- Kota Custom Dropdown Sheet -->
-    <div class="prod-dropdown-overlay" id="kotaDropdownOverlay" onclick="closeKotaDropdown()"></div>
-    <div class="prod-dropdown-sheet" id="kotaDropdownSheet">
-      <div class="prod-dropdown-sheet-handle"></div>
-      <div class="prod-dropdown-sheet-title">Pilih Kota / Kabupaten</div>
-      <div class="prod-dropdown-list" id="kotaDropdownList"></div>
-      <div class="prod-dropdown-safe-area"></div>
     </div>
 
     <!-- Alamat -->
@@ -991,6 +982,17 @@
   ─────────────────────────────────────────
   Script dipanggil SEKALI di bawah sebelum </body>
   ───────────────────────────────────────── -->
+
+<!-- ════════════════════════
+     KOTA DROPDOWN SHEET
+════════════════════════ -->
+<div class="prod-dropdown-overlay" id="kotaDropdownOverlay"></div>
+<div class="prod-dropdown-sheet" id="kotaDropdownSheet">
+  <div class="prod-dropdown-sheet-handle"></div>
+  <div class="prod-dropdown-sheet-title">Pilih Kota / Kabupaten</div>
+  <div class="prod-dropdown-list" id="kotaDropdownList"></div>
+  <div class="prod-dropdown-safe-area"></div>
+</div>
 
 <!-- ════════════════════════
      PRODUCT MODAL
