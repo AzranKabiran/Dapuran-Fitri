@@ -225,6 +225,23 @@ footer {
 }
 
 
+/* ── Kota Trigger — style override ── */
+.kota-trigger {
+  min-height: 52px;
+  padding: 14px 32px 14px 18px;
+  gap: 0;
+}
+.kota-trigger .prod-dropdown-trigger-name {
+  font-size: 14px;
+  font-family: 'Jost', sans-serif;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+.kota-trigger .prod-dropdown-trigger-name:not(.placeholder) {
+  font-family: 'Cormorant', serif;
+  font-size: 17px;
+}
+
 /* ══════════════════════════
    SLOT BOARD — KG UI UPGRADE
 ══════════════════════════ */
