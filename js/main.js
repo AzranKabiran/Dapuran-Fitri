@@ -100,13 +100,10 @@ function renderSlots(slots) {
       } else if (!soldOut && badge) {
         badge.remove();
       }
-      // Disable/enable option di form dropdown
-      document.querySelectorAll('.form-prod-name option').forEach(opt => {
-        if (opt.dataset.productId === slot.product_id) {
-          opt.disabled = soldOut;
-          opt.textContent = soldOut
-            ? `${opt.dataset.label} — Habis`
-            : opt.dataset.label;
+      // Tandai sold-out di custom dropdown (via data attribute, dicek saat sheet dibuka)
+      document.querySelectorAll('.form-prod-name').forEach(trigger => {
+        if (trigger.dataset.productId === slot.product_id) {
+          trigger.dataset[slot.product_id + 'Disabled'] = soldOut ? 'true' : 'false';
         }
       });
     }
@@ -345,17 +342,7 @@ const SUBMIT_COOLDOWN_MS = 30000; // 30 detik
 function resetFormProducts() {
   const container = document.getElementById('formProducts');
   if (!container) return;
-  const row = document.createElement('div');
-  row.className = 'form-product-row';
-  row.innerHTML = `
-    <select class="form-input form-select form-prod-name" required onchange="recalcTotal()">
-      ${buildProductOptions()}
-    </select>
-    <input type="number" class="form-input form-prod-kg" placeholder="jumlah toples" min="0.25" step="0.25" required oninput="recalcTotal()">
-    <button type="button" class="form-remove-row hidden-btn" aria-hidden="true" tabindex="-1">✕</button>
-  `;
-  container.innerHTML = '';
-  container.appendChild(row);
+  container.innerHTML = buildProductRowHTML(true);
   recalcTotal();
 }
 
@@ -363,47 +350,149 @@ function resetFormProducts() {
 /* ── PRICE MAP — diisi oleh loadPricesFromDB di index.html ── */
 window._priceMap = {};
 
-/* ── Buat options HTML untuk dropdown produk ── */
-function buildProductOptions(selectedValue = '') {
-  const PROD_LIST = [
-    { id: 'nastar',          label: 'Nastar' },
-    { id: 'putri-salju',     label: 'Putri Salju' },
-    { id: 'semprit',         label: 'Kue Semprit' },
-    { id: 'gutem',           label: 'Kue Gutem' },
-    { id: 'lontong-paris',   label: 'Lontong Paris' },
-    { id: 'kacang-ijo',      label: 'Kacang Ijo' },
-    { id: 'skipi',           label: 'Kue Skipi' },
-    { id: 'bangkit-kampung', label: 'Bangkit Kampung' },
-    { id: 'bangkit-susu',    label: 'Bangkit Susu' },
-    { id: 'dahlia',          label: 'Kue Dahlia' },
-    { id: 'sagon',           label: 'Kue Sagon' },
-  ];
-  const opts = `<option value="" disabled ${!selectedValue ? 'selected' : ''}>Pilih Produk</option>` +
-    PROD_LIST.map(p => {
-      const harga = window._priceMap[p.id];
-      const label = harga ? `${p.label} — Rp ${Number(harga).toLocaleString('id-ID')}` : p.label;
-      return `<option value="${p.id}" data-product-id="${p.id}" data-label="${p.label}"
-        data-price="${harga || 0}" ${selectedValue === p.id ? 'selected' : ''}>${label}</option>`;
-    }).join('');
-  return opts;
+/* ── SHIPPING MAP — { 'Langsa': 30000, 'Kuala Simpang': 25000, ... } ── */
+window._shippingMap = {};
+
+/* ── Daftar produk ── */
+const PROD_LIST = [
+  { id: 'nastar',          label: 'Nastar' },
+  { id: 'putri-salju',     label: 'Putri Salju' },
+  { id: 'semprit',         label: 'Kue Semprit' },
+  { id: 'gutem',           label: 'Kue Gutem' },
+  { id: 'lontong-paris',   label: 'Lontong Paris' },
+  { id: 'kacang-ijo',      label: 'Kacang Ijo' },
+  { id: 'skipi',           label: 'Kue Skipi' },
+  { id: 'bangkit-kampung', label: 'Bangkit Kampung' },
+  { id: 'bangkit-susu',    label: 'Bangkit Susu' },
+  { id: 'dahlia',          label: 'Kue Dahlia' },
+  { id: 'sagon',           label: 'Kue Sagon' },
+];
+
+/* ── Custom Dropdown — state ── */
+let _activeTrigger = null;
+
+function openProdDropdown(trigger) {
+  _activeTrigger = trigger;
+  const overlay  = document.getElementById('prodDropdownOverlay');
+  const sheet    = document.getElementById('prodDropdownSheet');
+  const list     = document.getElementById('prodDropdownList');
+  const selected = trigger.dataset.productId;
+
+  // Build list items
+  list.innerHTML = PROD_LIST.map(p => {
+    const harga   = window._priceMap[p.id] || 0;
+    const isSel   = p.id === selected;
+    const isDisabled = trigger.dataset[p.id + 'Disabled'] === 'true';
+    return `<div class="prod-dropdown-item${isSel ? ' selected' : ''}${isDisabled ? ' disabled' : ''}"
+      onclick="selectProdItem('${p.id}','${p.label}',${harga})">
+      <span class="prod-dropdown-item-name">${p.label}</span>
+      <div class="prod-dropdown-item-right">
+        <div class="prod-dropdown-item-price">${harga ? 'Rp ' + Number(harga).toLocaleString('id-ID') : '—'}</div>
+        <div class="prod-dropdown-item-check">✓ dipilih</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  trigger.classList.add('open');
+  overlay.classList.add('visible');
+  requestAnimationFrame(() => sheet.classList.add('open'));
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProdDropdown() {
+  const overlay = document.getElementById('prodDropdownOverlay');
+  const sheet   = document.getElementById('prodDropdownSheet');
+  sheet.classList.remove('open');
+  overlay.classList.remove('visible');
+  if (_activeTrigger) _activeTrigger.classList.remove('open');
+  _activeTrigger = null;
+  document.body.style.overflow = '';
+}
+
+function selectProdItem(id, label, harga) {
+  if (!_activeTrigger) return;
+  _activeTrigger.dataset.productId = id;
+  _activeTrigger.dataset.label     = label;
+  _activeTrigger.dataset.price     = harga;
+
+  const nameEl  = _activeTrigger.querySelector('.prod-dropdown-trigger-name');
+  const priceEl = _activeTrigger.querySelector('.prod-dropdown-trigger-price');
+  nameEl.textContent  = label;
+  nameEl.classList.remove('placeholder');
+  priceEl.textContent = harga ? 'Rp ' + Number(harga).toLocaleString('id-ID') : '';
+
+  closeProdDropdown();
+  recalcTotal();
+}
+
+/* ── Update harga di semua trigger setelah load dari Supabase ── */
+function refreshDropdownPrices() {
+  document.querySelectorAll('.prod-dropdown-trigger').forEach(trigger => {
+    const id    = trigger.dataset.productId;
+    const harga = id && window._priceMap[id];
+    if (id && harga) {
+      trigger.dataset.price = harga;
+      const priceEl = trigger.querySelector('.prod-dropdown-trigger-price');
+      if (priceEl) priceEl.textContent = 'Rp ' + Number(harga).toLocaleString('id-ID');
+    }
+  });
+}
+
+/* ── Buat row HTML produk baru ── */
+function buildProductRowHTML(isFirst = false) {
+  return `<div class="form-product-row">
+    <div class="prod-dropdown-trigger form-prod-name"
+      data-product-id="" data-label="" data-price="0"
+      onclick="openProdDropdown(this)" role="button" tabindex="0">
+      <span class="prod-dropdown-trigger-name placeholder">Pilih Produk</span>
+      <span class="prod-dropdown-trigger-price"></span>
+    </div>
+    <input type="number" class="form-input form-prod-kg" placeholder="jml" min="0.25" step="0.25" required oninput="recalcTotal()">
+    <button type="button" class="form-remove-row${isFirst ? ' hidden-btn' : ''}"
+      ${isFirst ? 'aria-hidden="true" tabindex="-1"' : 'onclick="removeProductRow(this)" aria-label="Hapus baris"'}>✕</button>
+  </div>`;
 }
 
 function recalcTotal() {
   const rows = document.querySelectorAll('.form-product-row');
-  let total = 0;
+  let subtotal = 0;
   rows.forEach(row => {
-    const sel = row.querySelector('.form-prod-name');
-    const qty = parseFloat(row.querySelector('.form-prod-kg').value) || 0;
-    const opt = sel ? sel.options[sel.selectedIndex] : null;
-    const harga = opt ? parseFloat(opt.dataset.price || 0) : 0;
-    total += qty * harga;
+    const trigger = row.querySelector('.form-prod-name');
+    const qty     = parseFloat(row.querySelector('.form-prod-kg').value) || 0;
+    const harga   = trigger ? parseFloat(trigger.dataset.price || 0) : 0;
+    subtotal += qty * harga;
   });
-  const totalEl = document.getElementById('formTotal');
-  const amountEl = document.getElementById('formTotalAmount');
+
+  // Ambil ongkir berdasarkan kota yang dipilih
+  const kotaEl = document.getElementById('fKota');
+  const kota = kotaEl ? kotaEl.value : '';
+  const ongkir = (kota && window._shippingMap[kota] !== undefined) ? window._shippingMap[kota] : 0;
+  const total = subtotal + ongkir;
+
+  const totalEl   = document.getElementById('formTotal');
+  const amountEl  = document.getElementById('formTotalAmount');
+  const subEl     = document.getElementById('formSubtotal');
+  const subRowEl  = document.getElementById('formSubtotalRow');
+  const ongkirRowEl = document.getElementById('formOngkirRow');
+  const ongkirEl  = document.getElementById('formOngkirAmt');
+  const ongkirKotaEl = document.getElementById('formOngkirKota');
+
   if (totalEl && amountEl) {
-    if (total > 0) {
+    if (subtotal > 0) {
       totalEl.classList.add('visible');
       amountEl.textContent = 'Rp ' + Math.round(total).toLocaleString('id-ID');
+
+      // Tampilkan rincian hanya jika ada ongkir
+      if (ongkir > 0) {
+        if (subRowEl) subRowEl.style.display = '';
+        if (subEl) subEl.textContent = 'Rp ' + Math.round(subtotal).toLocaleString('id-ID');
+        if (ongkirRowEl) ongkirRowEl.style.display = '';
+        if (ongkirEl) ongkirEl.textContent = '+Rp ' + Math.round(ongkir).toLocaleString('id-ID');
+        if (ongkirKotaEl) ongkirKotaEl.textContent = kota;
+      } else {
+        if (subRowEl) subRowEl.style.display = 'none';
+        if (ongkirRowEl) ongkirRowEl.style.display = 'none';
+      }
     } else {
       totalEl.classList.remove('visible');
     }
@@ -412,16 +501,7 @@ function recalcTotal() {
 
 function addProductRow() {
   const container = document.getElementById('formProducts');
-  const row = document.createElement('div');
-  row.className = 'form-product-row';
-  row.innerHTML = `
-    <select class="form-input form-select form-prod-name" required onchange="recalcTotal()">
-      ${buildProductOptions()}
-    </select>
-    <input type="number" class="form-input form-prod-kg" placeholder="jumlah toples" min="0.25" step="0.25" required oninput="recalcTotal()">
-    <button type="button" class="form-remove-row" onclick="removeProductRow(this)" aria-label="Hapus baris">✕</button>
-  `;
-  container.appendChild(row);
+  container.insertAdjacentHTML('beforeend', buildProductRowHTML(false));
   recalcTotal();
 }
 
@@ -484,9 +564,11 @@ async function submitForm(event) {
   const produkList = [];
   let prodError = false;
   for (const row of prodRows) {
-    const nama = row.querySelector('.form-prod-name').value;
-    const kg   = parseFloat(row.querySelector('.form-prod-kg').value);
-    if (!nama) {
+    const trigger = row.querySelector('.form-prod-name');
+    const nama    = trigger ? trigger.dataset.label : '';
+    const prodId  = trigger ? trigger.dataset.productId : '';
+    const kg      = parseFloat(row.querySelector('.form-prod-kg').value);
+    if (!prodId) {
       showRowError(row, 'Mohon pilih produk.');
       prodError = true; hasError = true;
     } else if (!kg || kg <= 0) {
@@ -532,14 +614,28 @@ async function submitForm(event) {
 
     // Buat pesan WA
     const produkStr = produkList.map(p => `- ${p.nama}: ${p.kg} toples`).join('\n');
+    const ongkir    = (kota && window._shippingMap[kota] !== undefined) ? window._shippingMap[kota] : 0;
+    const subtotal  = produkList.reduce((sum, p) => {
+      const harga = window._priceMap[p.nama] || 0;
+      return sum + (harga * p.kg);
+    }, 0);
+    const totalBayar = subtotal + ongkir;
+    const ongkirStr  = ongkir > 0
+      ? `\nOngkir (${kota}): Rp ${Number(ongkir).toLocaleString('id-ID')}`
+      : '';
+    const totalStr   = totalBayar > 0
+      ? `\nEstimasi Total: Rp ${Math.round(totalBayar).toLocaleString('id-ID')}`
+      : '';
     const msg = encodeURIComponent(
       `Halo Dapuran Fitri! Saya ingin pre-order Lebaran 2027.\n\n` +
       `Nama: ${name}\n` +
       `WA: ${waNormalized}\n` +
       `Kota: ${kota}\n` +
       `Alamat: ${alamat}\n\n` +
-      `Produk:\n${produkStr}\n\n` +
-      `Mohon konfirmasi pesanan saya. Terima kasih!`
+      `Produk:\n${produkStr}` +
+      ongkirStr +
+      totalStr +
+      `\n\nMohon konfirmasi pesanan saya. Terima kasih!`
     );
 
     // Arahkan ke admin WA sesuai kota
