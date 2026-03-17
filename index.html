@@ -770,7 +770,7 @@
 
     <!-- Kota — menentukan admin WA -->
     <label class="sr-only" for="fKota">Kota</label>
-    <select class="form-input form-select" id="fKota" name="kota" required>
+    <select class="form-input form-select" id="fKota" name="kota" required onchange="recalcTotal()">
       <option value="" disabled selected>Pilih Kota / Kabupaten Anda</option>
       <option value="Langsa">Langsa</option>
       <option value="Kuala Simpang">Kuala Simpang</option>
@@ -785,25 +785,26 @@
     <div class="form-section-label">Produk yang Dipesan</div>
     <div class="form-products" id="formProducts">
       <div class="form-product-row">
-        <select class="form-input form-select form-prod-name" required onchange="recalcTotal()">
-          <option value="" disabled selected>Pilih Produk</option>
-          <option value="nastar" data-product-id="nastar" data-label="Nastar" data-price="0">Nastar</option>
-          <option value="putri-salju" data-product-id="putri-salju" data-label="Putri Salju" data-price="0">Putri Salju</option>
-          <option value="semprit" data-product-id="semprit" data-label="Kue Semprit" data-price="0">Kue Semprit</option>
-          <option value="gutem" data-product-id="gutem" data-label="Kue Gutem" data-price="0">Kue Gutem</option>
-          <option value="lontong-paris" data-product-id="lontong-paris" data-label="Lontong Paris" data-price="0">Lontong Paris</option>
-          <option value="kacang-ijo" data-product-id="kacang-ijo" data-label="Kacang Ijo" data-price="0">Kacang Ijo</option>
-          <option value="skipi" data-product-id="skipi" data-label="Kue Skipi" data-price="0">Kue Skipi</option>
-          <option value="bangkit-kampung" data-product-id="bangkit-kampung" data-label="Bangkit Kampung" data-price="0">Bangkit Kampung</option>
-          <option value="bangkit-susu" data-product-id="bangkit-susu" data-label="Bangkit Susu" data-price="0">Bangkit Susu</option>
-          <option value="dahlia" data-product-id="dahlia" data-label="Kue Dahlia" data-price="0">Kue Dahlia</option>
-          <option value="sagon" data-product-id="sagon" data-label="Kue Sagon" data-price="0">Kue Sagon</option>
-        </select>
-        <input type="number" class="form-input form-prod-kg" placeholder="jumlah toples" min="0.25" step="0.25" required oninput="recalcTotal()">
+        <div class="prod-dropdown-trigger form-prod-name"
+          data-product-id="" data-label="" data-price="0"
+          onclick="openProdDropdown(this)" role="button" tabindex="0">
+          <span class="prod-dropdown-trigger-name placeholder">Pilih Produk</span>
+          <span class="prod-dropdown-trigger-price"></span>
+        </div>
+        <input type="number" class="form-input form-prod-kg" placeholder="jml" min="0.25" step="0.25" required oninput="recalcTotal()">
         <button type="button" class="form-remove-row hidden-btn" aria-hidden="true" tabindex="-1">✕</button>
       </div>
     </div>
     <button type="button" class="form-add-row" onclick="addProductRow()">+ Tambah Produk Lain</button>
+
+    <!-- Custom Dropdown Sheet (shared, satu untuk semua baris) -->
+    <div class="prod-dropdown-overlay" id="prodDropdownOverlay" onclick="closeProdDropdown()"></div>
+    <div class="prod-dropdown-sheet" id="prodDropdownSheet">
+      <div class="prod-dropdown-sheet-handle"></div>
+      <div class="prod-dropdown-sheet-title">Pilih Produk</div>
+      <div class="prod-dropdown-list" id="prodDropdownList"></div>
+      <div class="prod-dropdown-safe-area"></div>
+    </div>
 
     <p style="font-family:'Jost',sans-serif; font-size:10px; color:rgba(196,150,86,.4); letter-spacing:0.5px; margin-top:-4px; margin-bottom:8px; font-style:italic;">
       Panduan isi jumlah: ¼ toples = 0.25 &nbsp;·&nbsp; ½ toples = 0.5 &nbsp;·&nbsp; 1 toples = 1
@@ -811,7 +812,19 @@
 
     <div class="form-total" id="formTotal">
       <span class="form-total-label">Estimasi Total Pesanan</span>
-      <div class="form-total-row">
+      <!-- Rincian subtotal (muncul hanya jika ada ongkir) -->
+      <div class="form-total-row" id="formSubtotalRow" style="display:none; opacity:.7;">
+        <span style="font-size:11px; letter-spacing:1.5px; text-transform:uppercase; font-family:'Jost',sans-serif;">Subtotal Produk</span>
+        <span class="form-total-amount" id="formSubtotal" style="font-size:14px;">Rp 0</span>
+      </div>
+      <!-- Ongkir per kota (muncul hanya jika kota memiliki surcharge) -->
+      <div class="form-total-row" id="formOngkirRow" style="display:none; opacity:.7;">
+        <span style="font-size:11px; letter-spacing:1.5px; text-transform:uppercase; font-family:'Jost',sans-serif;">Ongkir <em id="formOngkirKota" style="font-style:normal;color:var(--gold);"></em></span>
+        <span class="form-total-amount" id="formOngkirAmt" style="font-size:14px;color:var(--gold);">+Rp 0</span>
+      </div>
+      <!-- Total akhir -->
+      <div class="form-total-row" style="border-top:1px solid rgba(196,150,86,.2); padding-top:10px; margin-top:4px;">
+        <span style="font-size:11px; letter-spacing:1.5px; text-transform:uppercase; font-family:'Jost',sans-serif;">Total</span>
         <span class="form-total-amount" id="formTotalAmount">Rp 0</span>
       </div>
       <span class="form-total-note">*1 toples = 1 kg. Bisa pesan ¼, ½, atau lebih. Konfirmasi final via WhatsApp.</span>
@@ -956,7 +969,7 @@
     <a href="https://wa.me/6282277578490" class="footer-link" target="_blank">WhatsApp</a>
     <a href="https://instagram.com/dapuranfitri" class="footer-link" target="_blank" rel="noopener">Instagram</a>
     <a href="#faq" class="footer-link">FAQ</a>
-    <a href="mailto:hello@dapuranfitri.com" class="footer-link">Kontak</a>
+    <a href="/cdn-cgi/l/email-protection#29414c454546694d48595c5b48474f405d5b40074a4644" class="footer-link">Kontak</a>
   </div>
   <div class="footer-bottom">© 2027 Dapuran Fitri · Dibuat Seperti Milik Sendiri</div>
 </footer>
@@ -1005,7 +1018,7 @@
   </div>
 </div>
 
-  <script src="js/main.js"></script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="js/main.js"></script>
 
   <script>
     /* ── FETCH HARGA DARI SUPABASE ── */
@@ -1042,22 +1055,52 @@
           opt.textContent = `${opt.dataset.label} — Rp ${Number(harga).toLocaleString('id-ID')}`;
         });
 
-        // Force browser re-render semua select (mobile cache workaround)
-        document.querySelectorAll('.form-prod-name').forEach(function(sel) {
-          var val = sel.value;
-          if (val) { sel.value = ''; sel.value = val; }
-        });
+        // Refresh harga di semua custom dropdown trigger
+        if (typeof refreshDropdownPrices === 'function') refreshDropdownPrices();
 
         // Recalc estimasi total
         if (typeof recalcTotal === 'function') recalcTotal();
 
       } catch(e) {
-        console.warn('Gagal memuat harga:', e);
+        console.warn('[Dapuran Fitri] Gagal load harga dari Supabase:', e.message);
+      }
+    }
+
+    /* ── FETCH ONGKIR / SHIPPING ZONES DARI SUPABASE ── */
+    async function loadShippingZones() {
+      try {
+        const res = await fetch(`${_PRICE_URL}/rest/v1/shipping_zones?select=*`, {
+          headers: { 'apikey': _PRICE_KEY, 'Authorization': `Bearer ${_PRICE_KEY}` }
+        });
+        const zones = await res.json();
+        if (!Array.isArray(zones)) return;
+
+        // Simpan ke global shipping map: { 'Langsa': 30000, 'Kuala Simpang': 25000, ... }
+        zones.forEach(z => { window._shippingMap[z.city_name] = z.surcharge; });
+
+        // Update label dropdown kota — tampilkan ongkir
+        const kotaSelect = document.getElementById('fKota');
+        if (kotaSelect) {
+          Array.from(kotaSelect.options).forEach(opt => {
+            if (!opt.value) return;
+            const ongkir = window._shippingMap[opt.value];
+            if (ongkir !== undefined) {
+              opt.textContent = ongkir > 0
+                ? `${opt.value}  (+Rp ${Number(ongkir).toLocaleString('id-ID')} ongkir)`
+                : `${opt.value}  (gratis ongkir)`;
+            }
+          });
+        }
+
+        if (typeof recalcTotal === 'function') recalcTotal();
+
+      } catch(e) {
+        console.warn('[Dapuran Fitri] Gagal load shipping zones:', e.message);
       }
     }
 
     loadPricesFromDB();
+    loadShippingZones();
   </script>
-
 </body>
 </html>

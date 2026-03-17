@@ -352,6 +352,7 @@
       <button class="tab active" id="tabSlot" onclick="switchTab('slot')">Kapasitas Produksi</button>
       <button class="tab" id="tabOrder" onclick="switchTab('order')">Pesanan Masuk</button>
       <button class="tab" id="tabPrice" onclick="switchTab('price')">Harga Produk</button>
+      <button class="tab" id="tabShipping" onclick="switchTab('shipping')">Ongkir Kota</button>
     </div>
 
     <!-- ═══ TAB SLOT ═══ -->
@@ -412,6 +413,33 @@
             <tr class="loading-row"><td colspan="4">Memuat data harga...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ═══ TAB ONGKIR ═══ -->
+    <div id="panelShipping" style="display:none">
+      <h1 class="dash-title">Ongkir <em>per Kota</em></h1>
+      <p class="dash-desc">Atur surcharge (kenaikan harga) berdasarkan kota pengiriman. Perubahan langsung terlihat di form pre-order.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Kota</th>
+              <th>Ongkir Saat Ini</th>
+              <th>Ongkir Baru (Rp)</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="shippingTbody">
+            <tr class="loading-row"><td colspan="4">Memuat data ongkir...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:20px; padding:16px; background:rgba(196,150,86,.08); border-radius:8px; font-family:'Jost',sans-serif; font-size:12px; color:rgba(255,255,255,.5); line-height:1.8;">
+        <strong style="color:var(--gold)">Catatan:</strong><br>
+        · Ongkir = biaya tambahan di luar harga produk<br>
+        · Set ke <strong>0</strong> untuk gratis ongkir<br>
+        · Perubahan langsung tampil di dropdown kota halaman utama
       </div>
     </div>
 
@@ -779,14 +807,17 @@
 
   /* ── TABS ── */
   window.switchTab = (tab) => {
-    document.getElementById('panelSlot').style.display  = tab === 'slot'  ? '' : 'none';
-    document.getElementById('panelOrder').style.display = tab === 'order' ? '' : 'none';
-    document.getElementById('panelPrice').style.display = tab === 'price' ? '' : 'none';
-    document.getElementById('tabSlot').classList.toggle('active',  tab === 'slot');
-    document.getElementById('tabOrder').classList.toggle('active', tab === 'order');
-    document.getElementById('tabPrice').classList.toggle('active', tab === 'price');
-    if (tab === 'order') loadOrders();
-    if (tab === 'price') loadPrices();
+    document.getElementById('panelSlot').style.display     = tab === 'slot'     ? '' : 'none';
+    document.getElementById('panelOrder').style.display    = tab === 'order'    ? '' : 'none';
+    document.getElementById('panelPrice').style.display    = tab === 'price'    ? '' : 'none';
+    document.getElementById('panelShipping').style.display = tab === 'shipping' ? '' : 'none';
+    document.getElementById('tabSlot').classList.toggle('active',     tab === 'slot');
+    document.getElementById('tabOrder').classList.toggle('active',    tab === 'order');
+    document.getElementById('tabPrice').classList.toggle('active',    tab === 'price');
+    document.getElementById('tabShipping').classList.toggle('active', tab === 'shipping');
+    if (tab === 'order')    loadOrders();
+    if (tab === 'price')    loadPrices();
+    if (tab === 'shipping') loadShipping();
   };
 
   /* ── ORDERS ── */
@@ -950,7 +981,7 @@
     if (isNaN(price) || price < 0) { toast('Harga tidak valid', 'err'); return; }
     try {
       // Upsert — insert jika belum ada, update jika sudah ada
-      await fetch(`${SUPABASE_URL}/rest/v1/prices`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/prices`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
@@ -960,10 +991,66 @@
         },
         body: JSON.stringify({ product_id: productId, price })
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
       toast(`Harga berhasil diupdate`, 'ok');
       loadPrices();
     } catch(e) {
       toast(`Gagal menyimpan: ${e.message}`, 'err');
+    }
+  };
+
+  /* ── SHIPPING ZONES ── */
+  async function loadShipping() {
+    const tbody = document.getElementById('shippingTbody');
+    tbody.innerHTML = '<tr class="loading-row"><td colspan="4">Memuat data ongkir...</td></tr>';
+    try {
+      const data = await sbFetch('shipping_zones?select=*&order=city_name.asc', { token: getAdminToken() });
+      if (!data.length) {
+        tbody.innerHTML = '<tr class="loading-row"><td colspan="4">Belum ada data. Jalankan SQL setup terlebih dahulu.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(z => `
+        <tr>
+          <td style="font-weight:500">${z.city_name}</td>
+          <td style="color:var(--gold)">Rp ${Number(z.surcharge).toLocaleString('id-ID')}</td>
+          <td><input type="number" id="ship-${z.city_name}" value="${z.surcharge}"
+            min="0" step="1000"
+            style="background:rgba(255,255,255,.06);border:1px solid rgba(196,150,86,.3);color:#fff;padding:8px 12px;border-radius:6px;font-family:'Jost',sans-serif;font-size:13px;width:140px;">
+          </td>
+          <td>
+            <button onclick="updateShipping('${z.city_name}')"
+              style="background:var(--gold);color:var(--dark);border:none;padding:8px 16px;border-radius:6px;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:1px;cursor:pointer;font-weight:500;">
+              Simpan
+            </button>
+          </td>
+        </tr>`).join('');
+    } catch(e) {
+      tbody.innerHTML = `<tr class="loading-row"><td colspan="4">Error: ${e.message}</td></tr>`;
+    }
+  }
+
+  window.updateShipping = async (cityName) => {
+    const input = document.getElementById(`ship-${cityName}`);
+    const surcharge = parseInt(input.value);
+    if (isNaN(surcharge) || surcharge < 0) { toast('Ongkir tidak valid', 'err'); return; }
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/shipping_zones?city_name=eq.${encodeURIComponent(cityName)}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${getAdminToken()}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({ surcharge })
+      });
+      toast(`Ongkir ${cityName} diupdate → Rp ${surcharge.toLocaleString('id-ID')}`);
+      loadShipping();
+    } catch(e) {
+      toast(`Gagal update: ${e.message}`, 'err');
     }
   };
 </script>
