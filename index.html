@@ -30,7 +30,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&amp;family=Cormorant+Garamond:ital,wght@0,300;1,300;1,400&amp;family=Jost:wght@200;300;400;500&amp;display=swap" rel="stylesheet">
 
   <!-- ─────────────────────────────────────────
-  
     CSS FILES:
     base.css       → Reset, Variabel, Nav, Hero, Ticker, SVG, Reveal, Animasi
     components.css → About, Produk, Proses, Story, Testimoni
@@ -771,12 +770,21 @@
 
     <!-- Kota — menentukan admin WA -->
     <label class="sr-only" for="fKota">Kota</label>
-    <select class="form-input form-select" id="fKota" name="kota" required onchange="recalcTotal()">
-      <option value="" disabled selected>Pilih Kota / Kabupaten Anda</option>
-      <option value="Langsa">Langsa</option>
-      <option value="Kuala Simpang">Kuala Simpang</option>
-      <option value="P. Brandan">P. Brandan</option>
-    </select>
+    <input type="hidden" id="fKota" name="kota">
+    <div class="prod-dropdown-trigger kota-trigger" id="kotaTrigger"
+      onclick="openKotaDropdown()" role="button" tabindex="0" aria-label="Pilih kota pengiriman">
+      <span class="prod-dropdown-trigger-name placeholder" id="kotaTriggerName">Pilih Kota / Kabupaten Anda</span>
+      <span class="prod-dropdown-trigger-price" id="kotaTriggerSub"></span>
+    </div>
+
+    <!-- Kota Custom Dropdown Sheet -->
+    <div class="prod-dropdown-overlay" id="kotaDropdownOverlay" onclick="closeKotaDropdown()"></div>
+    <div class="prod-dropdown-sheet" id="kotaDropdownSheet">
+      <div class="prod-dropdown-sheet-handle"></div>
+      <div class="prod-dropdown-sheet-title">Pilih Kota / Kabupaten</div>
+      <div class="prod-dropdown-list" id="kotaDropdownList"></div>
+      <div class="prod-dropdown-safe-area"></div>
+    </div>
 
     <!-- Alamat -->
     <label class="sr-only" for="fAlamat">Alamat</label>
@@ -1079,18 +1087,16 @@
         // Simpan ke global shipping map: { 'Langsa': 30000, 'Kuala Simpang': 25000, ... }
         zones.forEach(z => { window._shippingMap[z.city_name] = z.surcharge; });
 
-        // Update label dropdown kota — tampilkan ongkir
-        const kotaSelect = document.getElementById('fKota');
-        if (kotaSelect) {
-          Array.from(kotaSelect.options).forEach(opt => {
-            if (!opt.value) return;
-            const ongkir = window._shippingMap[opt.value];
-            if (ongkir !== undefined) {
-              opt.textContent = ongkir > 0
-                ? `${opt.value}  (+Rp ${Number(ongkir).toLocaleString('id-ID')} ongkir)`
-                : `${opt.value}  (gratis ongkir)`;
-            }
-          });
+        // Update sub-label kota trigger jika sudah ada kota terpilih
+        const kotaVal = document.getElementById('fKota')?.value;
+        const kotaSubEl = document.getElementById('kotaTriggerSub');
+        if (kotaVal && kotaSubEl) {
+          const ongkir = window._shippingMap[kotaVal];
+          if (ongkir !== undefined) {
+            kotaSubEl.textContent = ongkir > 0
+              ? `+Rp ${Number(ongkir).toLocaleString('id-ID')} ongkir`
+              : 'gratis ongkir';
+          }
         }
 
         if (typeof recalcTotal === 'function') recalcTotal();
@@ -1103,6 +1109,5 @@
     loadPricesFromDB();
     loadShippingZones();
   </script>
-  
 </body>
 </html>
