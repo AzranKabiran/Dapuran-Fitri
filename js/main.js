@@ -425,30 +425,32 @@ function openKotaDropdown() {
   const list     = document.getElementById('kotaDropdownList');
   const selected = document.getElementById('fKota').value;
 
-  list.innerHTML = KOTA_LIST.map(k => {
-    const shippingFee = (window._shippingMap && window._shippingMap[k.value] !== undefined)
+  list.innerHTML = KOTA_LIST.map(function(k) {
+    var fee = (window._shippingMap && window._shippingMap[k.value] !== undefined)
       ? window._shippingMap[k.value] : null;
-    const ongkir = shippingFee === null
-      ? '—'
-      : shippingFee > 0
-        ? '+Rp ' + Number(shippingFee).toLocaleString('id-ID') + ' ongkir'
-        : `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-            <span style="font-family:'Jost',sans-serif;font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:rgba(196,150,86,.7);font-weight:200;white-space:nowrap;">Free Delivery</span>
-            <div style="display:flex;align-items:center;gap:4px;width:100%;">
-              <div style="flex:1;height:.5px;background:rgba(196,150,86,.35);"></div>
-              <div style="font-size:4px;color:rgba(196,150,86,.5);line-height:1;flex-shrink:0;">◆</div>
-              <div style="flex:1;height:.5px;background:rgba(196,150,86,.35);"></div>
-            </div>
-          </div>`;
-    const isSel = k.value === selected;
-    return `<div class="prod-dropdown-item${isSel ? ' selected' : ''}"
-      onclick="selectKotaItem('${k.value}','${k.label}')">
-      <span class="prod-dropdown-item-name">${k.label}</span>
-      <div class="prod-dropdown-item-right">
-        <div class="prod-dropdown-item-price">${ongkir}</div>
-        <div class="prod-dropdown-item-check">✓ dipilih</div>
-      </div>
-    </div>`;
+
+    var ongkirHTML;
+    if (fee === null) {
+      ongkirHTML = '&mdash;';
+    } else if (fee > 0) {
+      ongkirHTML = '+Rp ' + Number(fee).toLocaleString('id-ID') + ' ongkir';
+    } else {
+      ongkirHTML = '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
+        + '<span style="font-family:Jost,sans-serif;font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:rgba(196,150,86,.7);font-weight:200;white-space:nowrap;">Free Delivery</span>'
+        + '<div style="display:flex;align-items:center;gap:4px;width:100%;">'
+        + '<div style="flex:1;height:.5px;background:rgba(196,150,86,.35);"></div>'
+        + '<div style="font-size:4px;color:rgba(196,150,86,.5);line-height:1;flex-shrink:0;">&#9670;</div>'
+        + '<div style="flex:1;height:.5px;background:rgba(196,150,86,.35);"></div>'
+        + '</div></div>';
+    }
+
+    var selClass = k.value === selected ? ' selected' : '';
+    return '<div class="prod-dropdown-item' + selClass + '" onclick="selectKotaItem(\'' + k.value + '\',\'' + k.label + '\')">'
+      + '<span class="prod-dropdown-item-name">' + k.label + '</span>'
+      + '<div class="prod-dropdown-item-right">'
+      + '<div class="prod-dropdown-item-price">' + ongkirHTML + '</div>'
+      + '<div class="prod-dropdown-item-check">\u2713 dipilih</div>'
+      + '</div></div>';
   }).join('');
 
   // Reset border error jika ada
