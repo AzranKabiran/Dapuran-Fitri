@@ -323,6 +323,9 @@ function showRowError(rowEl, msg) {
 function clearAllErrors() {
   document.querySelectorAll('.field-error').forEach(e => e.remove());
   document.querySelectorAll('#preorderForm .form-input').forEach(f => f.style.borderColor = '');
+  // Clear kota trigger border
+  const kotaTrigger = document.getElementById('kotaTrigger');
+  if (kotaTrigger) kotaTrigger.style.borderColor = '';
 }
 
 /* ── FORM ── */
@@ -407,6 +410,81 @@ function closeProdDropdown() {
   if (_activeTrigger) _activeTrigger.classList.remove('open');
   _activeTrigger = null;
   document.body.style.overflow = '';
+}
+
+/* ── KOTA DROPDOWN — custom bottom sheet (bukan native select) ── */
+const KOTA_LIST = [
+  { value: 'Langsa',        label: 'Langsa',        sub: 'Ongkir ditampilkan setelah load' },
+  { value: 'Kuala Simpang', label: 'Kuala Simpang',  sub: 'Ongkir ditampilkan setelah load' },
+  { value: 'P. Brandan',    label: 'P. Brandan',     sub: 'Ongkir ditampilkan setelah load' },
+];
+
+function openKotaDropdown() {
+  const overlay  = document.getElementById('kotaDropdownOverlay');
+  const sheet    = document.getElementById('kotaDropdownSheet');
+  const list     = document.getElementById('kotaDropdownList');
+  const selected = document.getElementById('fKota').value;
+
+  list.innerHTML = KOTA_LIST.map(k => {
+    const shippingFee = (window._shippingMap && window._shippingMap[k.value] !== undefined)
+      ? window._shippingMap[k.value] : null;
+    const ongkir = shippingFee === null
+      ? '—'
+      : shippingFee > 0
+        ? '+Rp ' + Number(shippingFee).toLocaleString('id-ID') + ' ongkir'
+        : `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <span style="font-family:'Jost',sans-serif;font-size:8.5px;letter-spacing:3px;text-transform:uppercase;color:rgba(196,150,86,.7);font-weight:200;white-space:nowrap;">Free Delivery</span>
+            <div style="display:flex;align-items:center;gap:4px;width:100%;">
+              <div style="flex:1;height:.5px;background:rgba(196,150,86,.35);"></div>
+              <div style="font-size:4px;color:rgba(196,150,86,.5);line-height:1;flex-shrink:0;">◆</div>
+              <div style="flex:1;height:.5px;background:rgba(196,150,86,.35);"></div>
+            </div>
+          </div>`;
+    const isSel = k.value === selected;
+    return `<div class="prod-dropdown-item${isSel ? ' selected' : ''}"
+      onclick="selectKotaItem('${k.value}','${k.label}')">
+      <span class="prod-dropdown-item-name">${k.label}</span>
+      <div class="prod-dropdown-item-right">
+        <div class="prod-dropdown-item-price">${ongkir}</div>
+        <div class="prod-dropdown-item-check">✓ dipilih</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Reset border error jika ada
+  const trigger = document.getElementById('kotaTrigger');
+  if (trigger) trigger.style.borderColor = '';
+
+  overlay.classList.add('visible');
+  requestAnimationFrame(() => sheet.classList.add('open'));
+  document.body.style.overflow = 'hidden';
+}
+
+function closeKotaDropdown() {
+  const overlay = document.getElementById('kotaDropdownOverlay');
+  const sheet   = document.getElementById('kotaDropdownSheet');
+  sheet.classList.remove('open');
+  overlay.classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+function selectKotaItem(value, label) {
+  document.getElementById('fKota').value = value;
+
+  const nameEl = document.getElementById('kotaTriggerName');
+  const subEl  = document.getElementById('kotaTriggerSub');
+  if (nameEl) {
+    nameEl.textContent = label;
+    nameEl.classList.remove('placeholder');
+  }
+  if (subEl && window._shippingMap) {
+    const ongkir = window._shippingMap[value];
+    subEl.textContent = ongkir !== undefined
+      ? (ongkir > 0 ? '+Rp ' + Number(ongkir).toLocaleString('id-ID') + ' ongkir' : 'Free Delivery')
+      : '';
+  }
+  closeKotaDropdown();
+  recalcTotal();
 }
 
 function selectProdItem(id, label, harga) {
@@ -550,7 +628,20 @@ async function submitForm(event) {
   }
 
   if (!kota) {
-    showFieldError('fKota', 'Mohon pilih kota Anda.');
+    // Error pada custom trigger, bukan hidden input
+    const kotaTrigger = document.getElementById('kotaTrigger');
+    if (kotaTrigger) {
+      kotaTrigger.style.borderColor = '#c45656';
+      let err = kotaTrigger.parentElement.querySelector('.kota-field-error');
+      if (!err) {
+        err = document.createElement('div');
+        err.className = 'kota-field-error field-error';
+        err.style.cssText = 'font-size:12px;color:#c45656;margin-top:5px;letter-spacing:.5px;line-height:1.5;font-family:"Jost",sans-serif;';
+        kotaTrigger.after(err);
+      }
+      err.textContent = 'Mohon pilih kota Anda.';
+      kotaTrigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     hasError = true;
   }
 
