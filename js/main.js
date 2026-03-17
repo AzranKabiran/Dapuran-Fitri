@@ -412,20 +412,22 @@ function closeProdDropdown() {
   document.body.style.overflow = '';
 }
 
-/* ── KOTA DROPDOWN — custom bottom sheet (bukan native select) ── */
-const KOTA_LIST = [
-  { value: 'Langsa',        label: 'Langsa',        sub: 'Ongkir ditampilkan setelah load' },
-  { value: 'Kuala Simpang', label: 'Kuala Simpang',  sub: 'Ongkir ditampilkan setelah load' },
-  { value: 'P. Brandan',    label: 'P. Brandan',     sub: 'Ongkir ditampilkan setelah load' },
+/* ── KOTA DROPDOWN — custom bottom sheet ── */
+var KOTA_LIST = [
+  { value: 'Langsa',        label: 'Langsa' },
+  { value: 'Kuala Simpang', label: 'Kuala Simpang' },
+  { value: 'P. Brandan',    label: 'P. Brandan' },
 ];
 
 function openKotaDropdown() {
-  const overlay  = document.getElementById('kotaDropdownOverlay');
-  const sheet    = document.getElementById('kotaDropdownSheet');
-  const list     = document.getElementById('kotaDropdownList');
-  const selected = document.getElementById('fKota').value;
+  var overlay  = document.getElementById('kotaDropdownOverlay');
+  var sheet    = document.getElementById('kotaDropdownSheet');
+  var list     = document.getElementById('kotaDropdownList');
+  var selected = document.getElementById('fKota').value;
 
-  list.innerHTML = KOTA_LIST.map(function(k) {
+  var html = '';
+  for (var i = 0; i < KOTA_LIST.length; i++) {
+    var k = KOTA_LIST[i];
     var fee = (window._shippingMap && window._shippingMap[k.value] !== undefined)
       ? window._shippingMap[k.value] : null;
 
@@ -444,50 +446,71 @@ function openKotaDropdown() {
         + '</div></div>';
     }
 
-    var selClass = k.value === selected ? ' selected' : '';
-    return '<div class="prod-dropdown-item' + selClass + '" onclick="selectKotaItem(\'' + k.value + '\',\'' + k.label + '\')">'
+    var selClass = (k.value === selected) ? ' selected' : '';
+    html += '<div class="prod-dropdown-item' + selClass + '" data-kota-value="' + k.value + '" data-kota-label="' + k.label + '">'
       + '<span class="prod-dropdown-item-name">' + k.label + '</span>'
       + '<div class="prod-dropdown-item-right">'
       + '<div class="prod-dropdown-item-price">' + ongkirHTML + '</div>'
-      + '<div class="prod-dropdown-item-check">\u2713 dipilih</div>'
+      + '<div class="prod-dropdown-item-check">&#10003; dipilih</div>'
       + '</div></div>';
-  }).join('');
+  }
+  list.innerHTML = html;
 
-  // Reset border error jika ada
-  const trigger = document.getElementById('kotaTrigger');
+  // Attach click via event delegation — no inline onclick needed
+  list.onclick = function(e) {
+    var item = e.target.closest('.prod-dropdown-item');
+    if (!item) return;
+    selectKotaItem(item.dataset.kotaValue, item.dataset.kotaLabel);
+  };
+
+  var trigger = document.getElementById('kotaTrigger');
   if (trigger) trigger.style.borderColor = '';
 
   overlay.classList.add('visible');
-  requestAnimationFrame(() => sheet.classList.add('open'));
+  requestAnimationFrame(function() { sheet.classList.add('open'); });
   document.body.style.overflow = 'hidden';
 }
 
 function closeKotaDropdown() {
-  const overlay = document.getElementById('kotaDropdownOverlay');
-  const sheet   = document.getElementById('kotaDropdownSheet');
-  sheet.classList.remove('open');
-  overlay.classList.remove('visible');
+  var overlay = document.getElementById('kotaDropdownOverlay');
+  var sheet   = document.getElementById('kotaDropdownSheet');
+  if (sheet)   sheet.classList.remove('open');
+  if (overlay) overlay.classList.remove('visible');
   document.body.style.overflow = '';
 }
 
 function selectKotaItem(value, label) {
   document.getElementById('fKota').value = value;
 
-  const nameEl = document.getElementById('kotaTriggerName');
-  const subEl  = document.getElementById('kotaTriggerSub');
+  var nameEl = document.getElementById('kotaTriggerName');
+  var subEl  = document.getElementById('kotaTriggerSub');
   if (nameEl) {
     nameEl.textContent = label;
     nameEl.classList.remove('placeholder');
   }
-  if (subEl && window._shippingMap) {
-    const ongkir = window._shippingMap[value];
-    subEl.textContent = ongkir !== undefined
-      ? (ongkir > 0 ? '+Rp ' + Number(ongkir).toLocaleString('id-ID') + ' ongkir' : 'Free Delivery')
-      : '';
+  if (subEl) {
+    var ongkir = (window._shippingMap && window._shippingMap[value] !== undefined)
+      ? window._shippingMap[value] : null;
+    subEl.textContent = ongkir === null ? '' : ongkir > 0
+      ? '+Rp ' + Number(ongkir).toLocaleString('id-ID') + ' ongkir'
+      : 'Free Delivery';
   }
   closeKotaDropdown();
-  recalcTotal();
+  if (typeof recalcTotal === 'function') recalcTotal();
 }
+
+// Attach listeners setelah DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  var trigger = document.getElementById('kotaTrigger');
+  var overlay = document.getElementById('kotaDropdownOverlay');
+  if (trigger) {
+    trigger.addEventListener('click', openKotaDropdown);
+    trigger.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openKotaDropdown(); }
+    });
+  }
+  if (overlay) overlay.addEventListener('click', closeKotaDropdown);
+});
 
 function selectProdItem(id, label, harga) {
   if (!_activeTrigger) return;
